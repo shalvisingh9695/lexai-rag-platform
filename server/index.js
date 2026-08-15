@@ -5,22 +5,26 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
+
 import documentRoutes from './routes/documentRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 import searchRoutes from './routes/searchRoutes.js';
 import askRoutes from './routes/askRoutes.js';
+
 import { dbConnect, getInMemoryStore } from './utils/dbConnect.js';
 import { ensureDocumentIndexed } from './rag/ragService.js';
 
-const PORT = process.env.PORT || 5000;
+async function startServer() {
+  const app = express();
+  const PORT = process.env.PORT || 5000;
 
-  // Global middlewares
+  // Middlewares
   app.use(cors());
   app.use(express.json({ limit: '20mb' }));
   app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 
-  // API Routes
+  // Routes
   app.use('/api/documents', documentRoutes);
   app.use('/api/search', searchRoutes);
   app.use('/api/ask', askRoutes);
@@ -30,16 +34,15 @@ const PORT = process.env.PORT || 5000;
   app.use('/api/compare', aiRoutes);
   app.use('/api/chat', chatRoutes);
 
+  // Health
   app.get('/api/health', (req, res) => {
     res.json({
       status: 'ok',
-      service: 'LexAI Legal Document Intelligence Server',
-      port: PORT,
-      timestamp: new Date().toISOString()
+      port: PORT
     });
   });
 
-  // Serve static assets in production if dist exists
+  // Serve frontend
   const distPath = path.join(process.cwd(), 'dist');
   if (fs.existsSync(distPath)) {
     app.use(express.static(distPath));
@@ -48,29 +51,27 @@ const PORT = process.env.PORT || 5000;
     });
   }
 
-  // Start HTTP server immediately
+  // Start server
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 LexAI Express Backend running on http://0.0.0.0:${PORT}`);
+    console.log(`🚀 Server running on ${PORT}`);
 
-    // Asynchronously connect database & pre-seed RAG vector index
-    dbConnect().then(() => {
-      try {
-        const store = getInMemoryStore();
-        if (store && store.documents) {
-          for (const doc of store.documents) {
-            ensureDocumentIndexed(doc._id || doc.id).catch(() => {});
+    dbConnect()
+      .then(() => {
+        try {
+          const store = getInMemoryStore();
+          if (store?.documents) {
+            for (const doc of store.documents) {
+              ensureDocumentIndexed(doc._id || doc.id).catch(() => {});
+            }
           }
+        } catch (e) {
+          console.warn(e.message);
         }
-      } catch (e) {
-        console.warn('RAG pre-seed notice:', e.message);
-      }
-    }).catch(err => {
-      console.warn('Database initialization notice:', err.message);
-    });
+      })
+      .catch(err => {
+        console.warn(err.message);
+      });
   });
 }
 
-startServer().catch(err => {
-  console.error('Failed to start LexAI backend server:', err);
-});
-
+startServer().catch(console.error);
