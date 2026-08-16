@@ -1,6 +1,10 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+console.log("ENV CHECK:");
+console.log("MONGO URI:", process.env.MONGODB_URI ? "FOUND ✅" : "MISSING ❌");
+console.log("GEMINI KEY:", process.env.GEMINI_API_KEY ? "FOUND ✅" : "MISSING ❌");
+
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
