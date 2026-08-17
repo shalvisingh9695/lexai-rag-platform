@@ -37,9 +37,9 @@ export async function generateEmbedding(text) {
     });
 
     const response = await ai.models.embedContent({
-      model: 'text-embedding-004',
-      contents: text
-    });
+  model: 'gemini-embedding-001',
+  contents: [{ role: "user", parts: [{ text }] }]
+});
 
     if (response && response.embedding && Array.isArray(response.embedding.values) && response.embedding.values.length > 0) {
       return response.embedding.values;
