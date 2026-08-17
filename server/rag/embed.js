@@ -37,7 +37,7 @@ export async function generateEmbedding(text) {
     });
 
     const response = await ai.models.embedContent({
-      model: 'gemini-embedding-2-preview',
+      model: 'text-embedding-004',
       contents: text
     });
 
